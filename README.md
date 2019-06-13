@@ -27,3 +27,8 @@ Here is a simple example for docker-compose and Traefik.
       - "traefik.frontend.rule=Host: musik.example.com"
       - "traefik.port=8080"
 ```
+
+
+```
+docker run --name supysonic -v $HOME/docker/supysonic:/var/lib/supysonic -v /media:/media -p 8080:8080 ugeek/supysonic
+```
