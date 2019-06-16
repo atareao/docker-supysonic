@@ -59,3 +59,6 @@ For more details on the command-line usage, take a look at the
 
 ## Alpine Linux Version
 - Alpine Linux 3.9 
+
+## Version of supysonic
+https://github.com/uGeek/supysonic
