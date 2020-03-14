@@ -9,32 +9,29 @@ EOF
 # create user
 adduser -D -u $UID -g $GID -h /var/lib/supysonic supysonic
 
-if ! test -f /var/lib/supysonic/supysonic.db; then
-    # create database if required
-    echo Creating intial database
-    pip install /supysonic-master
+# Create or update database
+echo Create or update database
+pip install /supysonic-$TAG
+sleep 10
 
-    if test -f /run/secrets/supysonic; then
-        password=$(cat /run/secrets/supysonic)
-    else
-        until [ ${len=0} -gt 12 ]; do len=$(( $RANDOM % 24 )); done
-        password=$(tr -dc '[:alnum:]' < /dev/urandom | head -c $len)
-        echo Generated password: $password
-    fi
-
-    echo Adding user
-    supysonic-cli user add admin -a -p $password
-
-    echo Adding and scanning Library in /media
-    supysonic-cli folder add Library /media
-    supysonic-cli folder scan supysonic:latestLibrary
-
+ans=$(supysonic-cli user list | grep "$USER")
+if [ "$ans" = '' ]
+then
+    echo Adding user $USER
+    supysonic-cli user add $USER -p $PASSWORD
+    echo Changing permissions
+    supysonic-cli user setroles -a $USER
     echo Changing owner of config dir
     chown -R supysonic:supysonic ~supysonic
-else
-    # update database
-    # see: https://github.com/spl0k/supysonic/blob/master/README.md#upgrading
-    pip install /supysonic-master
+    echo Changing owner of media dir
+    chown -R supysonic:supysonic /media
+fi
+ans=$(supysonic-cli folder list | grep "/media")
+if [ "$ans" = '' ]
+then
+    echo Adding and scanning Library in /media
+    supysonic-cli folder add Library /media
+    supysonic-cli folder scan -f Library
 fi
 
 # run watcher in background, if not disabled
@@ -44,7 +41,7 @@ fi
 
 # run uwsgi
 exec uwsgi --http-socket :8080 \
-           --wsgi-file /supysonic-master/cgi-bin/supysonic.wsgi \
+           --wsgi-file /supysonic-$TAG/cgi-bin/supysonic.wsgi \
            --master \
            --processes 4 --threads 2 \
            --uid $UID --gid $GID
